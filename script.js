@@ -1,12 +1,9 @@
+
 // IndexedDB Configuration
 const DB_NAME = 'SICTChatDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'chatHistory';
 let db = null;
-
-// API Configuration (Replace with your actual API endpoint and key)
-const GEMINI_API_URL = 'https://your-gemini-api-endpoint.com/v1beta1/models/gemini-pro:generateContent';
-const GEMINI_API_KEY = 'your-api-key-here';
 
 function initDB() {
     return new Promise((resolve, reject) => {
@@ -163,7 +160,7 @@ function displayChatHistory(messages) {
         }
     });
 
-    scrollToBottom();
+    scrollToBottom(); // Cuộn xuống cuối sau khi tải lịch sử
 }
 
 function buildChatHistoryForAPI() {
@@ -235,7 +232,7 @@ function clearChatHistory() {
 
         request.onsuccess = () => {
             console.log('Chat history cleared successfully');
-            document.getElementById('chatBox').innerHTML = '';
+            window.location.reload();
         };
 
         request.onerror = () => {
@@ -268,31 +265,15 @@ async function askQuestion() {
     loadingDiv.appendChild(loadingContent);
 
     chatBox.appendChild(loadingDiv);
-    scrollToBottom();
+    scrollToBottom(); // Cuộn xuống khi thêm tin nhắn loading
 
     const payload = {
-        contents: await buildChatHistoryForAPI()
+        question: question || "",
+        chatHistory: await buildChatHistoryForAPI()
     };
 
-    const parts = [];
-    if (question && question.trim()) {
-        parts.push({ text: question });
-    }
-
     if (selectedImage) {
-        parts.push({
-            inline_data: {
-                mime_type: selectedImage.mimeType,
-                data: selectedImage.data
-            }
-        });
-    }
-
-    if (parts.length > 0) {
-        payload.contents.push({
-            role: "user",
-            parts: parts
-        });
+        payload.image = selectedImage;
     }
 
     input.value = '';
@@ -300,54 +281,63 @@ async function askQuestion() {
     removeSelectedImage();
     document.getElementById('sendIcon').style.pointerEvents = 'none';
 
-    try {
-        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+    fetch('/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            return res.text();
+        })
+        .then(data => {
+            const sanitized = DOMPurify.sanitize(md.render(data));
+            loadingDiv.className = 'bot-message';
+
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            messageContent.innerHTML = sanitized;
+
+            loadingDiv.innerHTML = '';
+            loadingDiv.appendChild(messageContent);
+
+            loadingDiv.querySelectorAll('pre code').forEach(block => {
+                hljs.highlightElement(block);
+            });
+
+            saveMessageToHistory(false, data);
+            scrollToBottom(); // Cuộn xuống khi nhận được phản hồi
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            loadingDiv.className = 'bot-message';
+
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            messageContent.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: #e74c3c; margin-right: 8px;"></i>Có lỗi xảy ra. Vui lòng thử lại!';
+
+            loadingDiv.innerHTML = '';
+            loadingDiv.appendChild(messageContent);
+
+            saveMessageToHistory(false, 'Có lỗi xảy ra. Vui lòng thử lại!');
+            scrollToBottom(); // Cuộn xuống khi có lỗi
+        })
+        .finally(() => {
+            document.getElementById('sendIcon').style.pointerEvents = 'auto';
         });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        const text = data.candidates[0].content.parts[0].text;
-
-        loadingDiv.className = 'bot-message';
-        const messageContent = document.createElement('div');
-        messageContent.className = 'message-content';
-        const sanitized = DOMPurify.sanitize(md.render(text));
-        messageContent.innerHTML = sanitized;
-
-        loadingDiv.innerHTML = '';
-        loadingDiv.appendChild(messageContent);
-
-        loadingDiv.querySelectorAll('pre code').forEach(block => {
-            hljs.highlightElement(block);
-        });
-
-        saveMessageToHistory(false, text);
-        scrollToBottom();
-    } catch (err) {
-        console.error('Error:', err);
-        loadingDiv.className = 'bot-message';
-
-        const messageContent = document.createElement('div');
-        messageContent.className = 'message-content';
-        messageContent.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: #e74c3c; margin-right: 8px;"></i>Có lỗi xảy ra. Vui lòng thử lại!';
-
-        loadingDiv.innerHTML = '';
-        loadingDiv.appendChild(messageContent);
-
-        saveMessageToHistory(false, 'Có lỗi xảy ra. Vui lòng thử lại!');
-        scrollToBottom();
-    } finally {
-        document.getElementById('sendIcon').style.pointerEvents = 'auto';
-    }
 }
-
 document.addEventListener('DOMContentLoaded', async function() {
+    const currentPath = window.location.pathname;
+    const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
+
+    navLinks.forEach(link => {
+        if (link.getAttribute('href') && currentPath.includes(link.getAttribute('href'))) {
+            link.classList.add('active');
+        }
+    });
+
     try {
         await initDB();
         loadChatHistory();
@@ -371,17 +361,26 @@ const md = window.markdownit({
 let selectedImage = null;
 
 function autoResize(textarea) {
+    // Đặt lại chiều cao của textarea và container
     textarea.style.height = 'auto';
     const container = textarea.parentElement;
     container.style.height = 'auto';
 
+    // Tính toán chiều cao nội dung của textarea
     const contentHeight = textarea.scrollHeight;
-    const padding = 0;
-    const buttonContainerHeight = 35;
+
+    // Tính toán chiều cao container (bao gồm padding và button-container)
+    const padding = 0; // Padding trên và dưới của .chat-input-container (10px + 10px)
+    const buttonContainerHeight = 35; // Ước lượng chiều cao của .button-container (35px button + margin/padding)
     const totalHeight = contentHeight + padding + buttonContainerHeight;
+
+    // Giới hạn chiều cao tối đa là 450px
     const newHeight = Math.min(totalHeight, 400);
 
+    // Cập nhật chiều cao của container
     container.style.height = `${newHeight}px`;
+
+    // Cập nhật chiều cao của textarea (trừ đi phần padding và button-container)
     textarea.style.height = `${newHeight - padding - buttonContainerHeight}px`;
 }
 
@@ -433,7 +432,7 @@ function removeSelectedImage() {
 
 function displayUserMessage(text, imageData = null) {
     const container = document.createElement('div');
-    container.className = 'user-matchatbot.jsessage-container';
+    container.className = 'user-message-container';
 
     if (imageData) {
         const img = document.createElement('img');
@@ -499,15 +498,36 @@ function scrollToBottom() {
     if (lastBotMessage) {
         lastBotMessage.scrollIntoView({
             behavior: 'smooth',
-            block: 'start'
+            block: 'start' // cuộn phần tử lên đầu trang
         });
     } else {
+        // fallback nếu không có user message thì cuộn xuống cuối như cũ
         mainContent.scrollTo({
             top: mainContent.scrollHeight,
             behavior: 'smooth'
         });
     }
 }
+
+function scrollToBottomAns() {
+    const mainContent = document.querySelector('.main-content');
+    const UserMessage = document.querySelectorAll('.bot-message');
+    const lastUserMessage = UserMessage[UserMessage.length - 1];
+
+    if (lastUserMessage) {
+        lastUserMessage.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start' // cuộn phần tử lên đầu trang
+        });
+    } else {
+        // fallback nếu không có user message thì cuộn xuống cuối như cũ
+        mainContent.scrollTo({
+            top: mainContent.scrollHeight,
+            behavior: 'smooth'
+        });
+    }
+}
+
 
 function checkEnter(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -525,9 +545,9 @@ function showImageModal(imageSrc) {
         modal.id = 'imageModal';
         modal.className = 'image-modal';
         modal.innerHTML = `
-            <span class="image-modal-close">×</span>
-            <img class="image-modal-content" id="modalImage">
-        `;
+                <span class="image-modal-close">&times;</span>
+                <img class="image-modal-content" id="modalImage">
+            `;
         document.body.appendChild(modal);
     }
 
@@ -562,3 +582,4 @@ function showImageModal(imageSrc) {
     modal.addEventListener('click', clickHandler);
     document.addEventListener('keydown', keydownHandler);
 }
+
