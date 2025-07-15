@@ -1,35 +1,60 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chào mừng đến với trang của tôi</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: linear-gradient(to right, #00c6ff, #0072ff);
-      color: white;
-      padding: 100px 20px;
-    }
-    h1 {
-      font-size: 48px;
-      margin-bottom: 20px;
-    }
-    p {
-      font-size: 20px;
-    }
-    a {
-      color: #ffeb3b;
-      text-decoration: none;
-      font-weight: bold;
-    }
-  </style>
+    <title>ndson</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Material Design Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.0.96/css/materialdesignicons.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap&subset=vietnamese" rel="stylesheet">
+    <!-- Highlight.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <!-- Markdown-it & DOMPurify -->
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <h1>🚀 Xin chào!</h1>
-  <p>Đây là trang web đầu tiên của bạn được deploy bằng <strong>Cloudflare Pages</strong>.</p>
-  <p>Hãy chỉnh sửa <code>index.html</code> để thay đổi nội dung trang.</p>
-  <p><a href="https://pages.cloudflare.com" target="_blank">👉 Xem Cloudflare Pages</a></p>
+<div class="main-content">
+    <div class="container-fluid">
+        <div class="chat-container">
+            <div class="chat-box" id="chatBox">
+                <div class="bot-message">
+                    <div class="message-content">
+                        <p>Xin chào! Tôi có thể giúp gì cho bạn hôm nay?</p>
+                    </div>
+                </div>
+            </div>
+            <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+            <div id="imagePreview" style="display: none; padding: 0 15px;"></div>
+            <div class="chat-input-container">
+                <textarea id="questionInput" placeholder="Hỏi bất kỳ điều gì" oninput="autoResize(this)" onkeydown="checkEnter(event)" autofocus></textarea>
+                <div class="button-container">
+                    <div id="attachBtn" onclick="document.getElementById('imageInput').click()" title="Đính kèm ảnh">
+                        <i class="fas fa-paperclip"></i>
+                    </div>
+                    <div class="right-buttons">
+                        <div id="sendIcon" onclick="askQuestion()" title="Gửi câu hỏi">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                        <div id="clearHistoryBtn" onclick="clearChatHistory()" title="Xóa lịch sử chat">
+                            <i class="fas fa-trash-alt"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Bootstrap JS and Popper.js -->
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+<script src="/script.js"></script>
 </body>
 </html>
