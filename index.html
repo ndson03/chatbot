@@ -31,14 +31,9 @@
                     </div>
                 </div>
             </div>
-            <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
-            <div id="imagePreview" style="display: none; padding: 0 15px;"></div>
             <div class="chat-input-container">
                 <textarea id="questionInput" placeholder="Hỏi bất kỳ điều gì" oninput="autoResize(this)" onkeydown="checkEnter(event)" autofocus></textarea>
                 <div class="button-container">
-                    <div id="attachBtn" onclick="document.getElementById('imageInput').click()" title="Đính kèm ảnh">
-                        <i class="fas fa-paperclip"></i>
-                    </div>
                     <div class="right-buttons">
                         <div id="sendIcon" onclick="askQuestion()" title="Gửi câu hỏi">
                             <i class="fas fa-arrow-up"></i>
